@@ -1,0 +1,541 @@
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <queue>
+#include <set>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+using namespace std;
+
+// represents a node in the BST
+template <typename T>
+struct Node {
+string id;
+T weight;
+Node<T>* left;
+Node<T>* right;
+Node(string id, T weight) {
+this->id = id;
+this->weight = weight;
+this->left = this->right = nullptr;
+}
+};
+
+// the template allows the weight of vertex to take any
+// numeric data type (denoted by T).
+template <typename T>
+class BST {
+private:
+// the root of this BST
+Node<T>* root;
+// stores the number of vertices in the tree
+size_t vertices;
+// maintains the total sum
+T totalWeight;
+
+// adds a vertex to the graph recursively
+Node<T>* add_vertex(Node<T>*, const string&, const T&);
+// returns the node containing the given string - else nullptr
+Node<T>* find_node(Node<T>*, const string&);
+// gets all the vertices in the tree in LEVEL ORDER FASHION
+void get_vertices(Node<T>*, vector<string>&);
+// gets all the leaves in the tree in LEVEL ORDER FASHION
+void get_leaves(Node<T>*, vector<string>&);
+// gets the vertices in the tree in in-order fashion
+void in_order(Node<T>*, vector<string>&);
+// gets the vertices in the tree in pre-order fashion
+void pre_order(Node<T>*, vector<string>&);
+// gets the vertices in the tree in post-order fashion
+void post_order(Node<T>*, vector<string>&);
+// computes the height recursively
+size_t height(Node<T>*);
+// frees the memory allocated to all the nodes
+void deallocate(Node<T>*);
+// finds the common ancestor
+Node<T>* LCA(Node<T>*, const string&, const string&);
+// deletes the given node from BST
+Node<T>* delete_node(Node<T>*, const string&);
+
+public:
+/* test1 */
+// the contructor function.
+BST();
+// the destructor function.
+~BST();
+// returns the total number of vertices in the bst.
+size_t num_vertices();
+// returns the total number of edges in the bst.
+size_t num_edges();
+// return the total weight of all the vertices in the bst
+T sum_weight();
+
+/* test2 */
+// adds a vertex, which has a weight, to the tree -- every
+// vertex uses a string as its unique identifier.
+void add_vertex(const string&, const T&);
+// checks if a vertex is in the bst -- returns
+// true if the bst contains the given vertex;
+// otherwise, returns false.
+bool contains(const string&);
+
+/* test3 */
+// returns a vector of all the vertices in the bst.
+vector<string> get_vertices();
+// returns a vector of all the leaves in the bst.
+// Leaves are the vertices that do not have any children in the bst.
+vector<string> get_leaves();
+
+/* test4 */
+// check if there is an edge between the two
+// vertices in the bst -- returns true if the
+// edge exists; otherwise, returns false.
+bool adjacent(const string&, const string&);
+
+/* test5 */
+// returns a vector of all the edges in the bst -- each edge is
+// represented by a pair of vertices incident to the edge.
+vector<pair<string, string>> get_edges();
+
+/* test6 */
+// returns a vector of all the vertices, each of which is
+// directly connected with the given vertex via an edge.
+vector<string> get_neighbours(const string&);
+// returns the degree of a vertex.
+size_t degree(const string&);
+
+/* test7 */
+// returns a vector of all the vertices in the visiting
+// order of a preorder traversal over the bst.
+vector<string> preorder_traversal();
+
+/* test8 */
+// returns a vector of all the vertices in the visiting
+// order of an inorder traversal over the bst.
+vector<string> inorder_traversal();
+
+/* test9 */
+// returns a vector of all the vertices
+// in the visiting order of a postorder
+// traversal over the bst.
+vector<string> postorder_traversal();
+
+/* test10 */
+// returns a vector of all the vertices in the
+// visiting order of a breadth first traversal
+// over the bst.
+vector<string> breadth_first_traversal();
+
+/* test11 */
+// returns a vector of all the vertices in the path from
+// the first vertex to the second vertex.
+// A path should include the source and destination vertices at the begining
+// and the end, respectively.
+vector<string> path(const string&, const string&);
+
+/* test12 */
+// returns a path that has the
+// largest weight in the bst.
+// The weight of a path is the sum of the weights of all the vertices
+// (including the source and destination vertices) in the path.
+vector<string> path_with_largest_weight();
+
+/* test13 */
+// returns the height of bst. Height of a tree is the number of
+// edges that form the longest path from root to any leaf.
+size_t height();
+
+/* test14 */
+// delete the given vertex from bst --
+// note that, all incident edges of the
+// vertex should be deleted as well.
+void remove_vertex(const string&);
+};
+
+// adds a node to the BST
+template <typename T>
+Node<T>* BST<T>::add_vertex(Node<T>* root, const string& u, const T& w) {
+// check if root is valid
+if (root == nullptr) {
+// create a new node
+Node<T>* node = new Node<T>(u, w);
+// update the total number of vertices
+this->vertices++;
+// update the total weight
+this->totalWeight += w;
+// the new node becomes the root
+return node;
+} else if (root->id == u) {
+// update the weight of the node
+this->totalWeight = this->totalWeight - root->weight + w;
+root->weight = w;
+// this node continues to be as it is
+return root;
+} else if (root->id < u) {
+// root's value is smaller - insert in right child
+root->right = add_vertex(root->right, u, w);
+} else {
+// root's value is larger - insert in left child
+root->left = add_vertex(root->left, u, w);
+}
+// the root remains as it
+return root;
+}
+
+// searches for the node containing given string
+template <typename T>
+Node<T>* BST<T>::find_node(Node<T>* root, const string& u) {
+// check if node is valid
+if (root == nullptr) return nullptr;
+if (root->id == u) return root;
+if (root->id < u)
+return find_node(root->right, u);
+else
+return find_node(root->left, u);
+}
+
+// gets all the vertices in the tree in LEVEL ORDER FASHION
+template <typename T>
+void BST<T>::get_vertices(Node<T>* root, vector<string>& vect) {
+queue<Node<T>*> q;
+if (root != nullptr) q.push(root);
+while (!q.empty()) {
+Node<T>* node = q.front();
+q.pop();
+vect.push_back(node->id);
+if (node->left != nullptr) q.push(node->left);
+if (node->right != nullptr) q.push(node->right);
+}
+}
+// gets all the leaves in the tree
+template <typename T>
+void BST<T>::get_leaves(Node<T>* root, vector<string>& vect) {
+queue<Node<T>*> q;
+if (root != nullptr) q.push(root);
+while (!q.empty()) {
+Node<T>* node = q.front();
+q.pop();
+// if it is a leaf node then only add
+if (node->left == nullptr && node->right == nullptr)
+vect.push_back(node->id);
+if (node->left != nullptr) q.push(node->left);
+if (node->right != nullptr) q.push(node->right);
+}
+}
+// gets the vertices in the tree in in-order fashion
+template <typename T>
+void BST<T>::in_order(Node<T>* root, vector<string>& vect) {
+if (root == nullptr) return;
+in_order(root->left, vect);
+vect.push_back(root->id);
+in_order(root->right, vect);
+}
+// gets the vertices in the tree in pre-order fashion
+template <typename T>
+void BST<T>::pre_order(Node<T>* root, vector<string>& vect) {
+if (root == nullptr) return;
+vect.push_back(root->id);
+pre_order(root->left, vect);
+pre_order(root->right, vect);
+}
+// gets the vertices in the tree in post-order fashion
+template <typename T>
+void BST<T>::post_order(Node<T>* root, vector<string>& vect) {
+if (root == nullptr) return;
+post_order(root->left, vect);
+post_order(root->right, vect);
+vect.push_back(root->id);
+}
+// compute the height
+template <typename T>
+size_t BST<T>::height(Node<T>* root) {
+if (root == nullptr) return 0;
+return 1 + max(height(root->left), height(root->right));
+}
+
+// deallcoates memory allocated to tree rooted at root
+template <typename T>
+void BST<T>::deallocate(Node<T>* root) {
+if (root == nullptr) return;
+deallocate(root->left);
+deallocate(root->right);
+delete root;
+}
+
+// finds the LCA
+template <typename T>
+Node<T>* BST<T>::LCA(Node<T>* root, const string& u1, const string& u2) {
+if (root == nullptr) return root;
+if (root->id < u1 && root->id < u2) return LCA(root->right, u1, u2);
+if (root->id > u1 && root->id > u2) return LCA(root->left, u1, u2);
+return root;
+}
+
+// deletes the given node
+template <typename T>
+Node<T>* BST<T>::delete_node(Node<T>* root, const string& u) {
+if (root == nullptr) return nullptr;
+if (u < root->id) root->left = delete_node(root->left, u);
+if (u > root->id)
+root->right = delete_node(root->right, u);
+else {
+if (root->left == nullptr && root->right == nullptr) {
+this->vertices--;
+this->totalWeight -= root->weight;
+delete root;
+return nullptr;
+} else if (root->left == nullptr || root->right == nullptr) {
+this->vertices--;
+this->totalWeight -= root->weight;
+Node<T>* child = (root->left == nullptr ? root->right : root->left);
+delete root;
+return child;
+} else {
+Node<T>* tempNode = root->right;
+while (tempNode->left != nullptr) tempNode = tempNode->left;
+root->id = tempNode->id;
+root->weight = tempNode->weight;
+root->right = delete_node(root->right, root->id);
+}
+}
+return root;
+}
+
+// constructor
+template <typename T>
+BST<T>::BST() {
+// initialize the root to null!
+this->root = nullptr;
+// initially we have zero vertices
+this->vertices = 0;
+// initially weight is zero
+this->totalWeight = 0;
+}
+
+// destructor
+template <typename T>
+BST<T>::~BST() {
+// free memory allocated to all nodes
+deallocate(this->root);
+}
+
+// returns the number of vertices available
+template <typename T>
+size_t BST<T>::num_vertices() {
+// return the number of vertices available
+return this->vertices;
+}
+
+// returns the number of edges in the BST
+template <typename T>
+size_t BST<T>::num_edges() {
+// return the number of edges if there are any vertices
+// In generale for a BST of n nodes there are n - 1 edges!
+return (vertices > 0 ? vertices - 1 : 0);
+}
+
+// returns the sum of all weights in the BST
+template <typename T>
+T BST<T>::sum_weight() {
+// return the total weight
+return this->totalWeight;
+}
+
+// adds the vertex u to the BST with weight w
+template <typename T>
+void BST<T>::add_vertex(const string& u, const T& w) {
+// add the vertex and update the root
+this->root = add_vertex(this->root, u, w);
+}
+
+// returns true if the tree contains the given string
+template <typename T>
+bool BST<T>::contains(const string& u) {
+// find the node containing u
+return (find_node(this->root, u) != nullptr);
+}
+
+// returns all the vertices in the tree in LEVEL fashion
+template <typename T>
+vector<string> BST<T>::get_vertices() {
+vector<string> vect;
+get_vertices(this->root, vect);
+return vect;
+}
+
+// returns all the vertices in the tree in LEVEL fashion
+template <typename T>
+vector<string> BST<T>::get_leaves() {
+vector<string> vect;
+get_leaves(this->root, vect);
+return vect;
+}
+
+// returns all the vertices connected to given node
+template <typename T>
+bool BST<T>::adjacent(const string& u, const string& v) {
+vector<pair<string, string>> vect;
+queue<Node<T>*> q;
+if (this->root != nullptr) q.push(this->root);
+while (!q.empty()) {
+Node<T>* node = q.front(); q.pop();
+if (node->left != nullptr) {
+vect.push_back(make_pair(node->id, node->left->id));
+q.push(node->left);
+if (node->id == u && node->left->id == v) return true;
+if (node->id == v && node->left->id == u) return true;
+}
+if (node->right != nullptr) {
+vect.push_back(make_pair(node->id, node->right->id));
+q.push(node->right);
+if (node->id == u && node->right->id == v) return true;
+if (node->id == v && node->right->id == u) return true;
+}
+}
+return false;
+}
+
+// returns all the edges in the tree
+template <typename T>
+vector<pair<string, string>> BST<T>::get_edges() {
+vector<pair<string, string>> vect;
+queue<Node<T>*> q;
+if (this->root != nullptr) q.push(this->root);
+while (!q.empty()) {
+Node<T>* node = q.front();
+q.pop();
+if (node->left != nullptr) {
+vect.push_back(make_pair(node->id, node->left->id));
+q.push(node->left);
+}
+if (node->right != nullptr) {
+vect.push_back(make_pair(node->id, node->right->id));
+q.push(node->right);
+}
+}
+return vect;
+}
+
+// returns the neighbours of the given node
+template <typename T>
+vector<string> BST<T>::get_neighbours(const string& u) {
+vector<string> vect;
+queue<Node<T>*> q;
+if (this->root != nullptr) q.push(this->root);
+while (!q.empty()) {
+Node<T>* node = q.front();
+q.pop();
+if (node->left != nullptr) {
+if (node->left->id == u) vect.push_back(node->id);
+if (node->id == u) vect.push_back(node->left->id);
+q.push(node->left);
+}
+if (node->right != nullptr) {
+if (node->right->id == u) vect.push_back(node->id);
+if (node->id == u) vect.push_back(node->right->id);
+q.push(node->right);
+}
+}
+return vect;
+}
+
+// TODO: How degree is defined?
+// returns the number of connected edges (child + parent)
+template <typename T>
+size_t BST<T>::degree(const string& u) {
+size_t count = 0;
+Node<T>* node = find_node(this->root, u);
+if (node == nullptr) return count;
+if (node->left != nullptr) count++;
+if (node->right != nullptr) count++;
+if (node != this->root) count++;
+return count;
+}
+
+// returns the nodes in pre-order fashion
+template <typename T>
+vector<string> BST<T>::preorder_traversal() {
+vector<string> vect;
+pre_order(this->root, vect);
+return vect;
+}
+
+// returns the nodes in in-order fashion
+template <typename T>
+vector<string> BST<T>::inorder_traversal() {
+vector<string> vect;
+in_order(this->root, vect);
+return vect;
+}
+
+// returns the nodes in post-order fashion
+template <typename T>
+vector<string> BST<T>::postorder_traversal() {
+vector<string> vect;
+post_order(this->root, vect);
+return vect;
+}
+
+// returns the nodes in BFS (level-order fashion)
+template <typename T>
+vector<string> BST<T>::breadth_first_traversal() {
+vector<string> vect;
+get_vertices(this->root, vect);
+return vect;
+}
+
+// returns the path from u to v in BST
+template <typename T>
+vector<string> BST<T>::path(const string& u, const string& v) {
+vector<string> vect;
+// find the LCA
+Node<T>* lca = LCA(this->root, u, v);
+if (lca == nullptr) return vect;
+Node<T>* tempNode = lca;
+while (tempNode != nullptr && tempNode->id != u) {
+vect.push_back(tempNode->id);
+if (tempNode->id < u)
+tempNode = tempNode->right;
+else
+tempNode = tempNode->left;
+}
+vect.push_back(u);
+reverse(vect.begin(), vect.end());
+tempNode = lca->id < v ? lca->right : lca->left;
+while (tempNode != nullptr && tempNode->id != v) {
+vect.push_back(tempNode->id);
+if (tempNode->id < v)
+tempNode = tempNode->right;
+else
+tempNode = tempNode->left;
+}
+if (v != lca->id) vect.push_back(v);
+return vect;
+}
+
+// TODO: how largest path is defined?
+// there is only possible path from a node to another in tree
+template <typename T>
+vector<string> BST<T>::path_with_largest_weight() {
+return vector<string>();
+}
+
+// returns the height of the tree
+template <typename T>
+size_t BST<T>::height() {
+// compute and return the height of the root
+return height(this->root);
+}
+
+// removes the given vertex from the tree
+template <typename T>
+void BST<T>::remove_vertex(const string& u) {
+// delete the given node
+this->root = delete_node(this->root, u);
+}
